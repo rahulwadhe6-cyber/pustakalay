@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Pustakalay</title>
+  <meta name="description" content="PDF files upload kara, save kara ani read kara." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --paper: #fffaf3;
+      --ink: #1f2a24;
+      --muted: #5b6b63;
+      --line: #e4d8c4;
+      --accent: #0f766e;
+      --accent-2: #c2410c;
+      --good: #15803d;
+      --shadow: 0 14px 40px rgba(31, 42, 36, 0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", "Noto Sans Devanagari", system-ui, sans-serif;
+      background:
+        radial-gradient(900px 400px at 10% -10%, #fde68a55, transparent 50%),
+        radial-gradient(700px 400px at 100% 0%, #99f6e455, transparent 45%),
+        var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; gap: 14px; align-items: center; }
+    .logo {
+      width: 52px; height: 52px; border-radius: 16px;
+      display: grid; place-items: center;
+      background: linear-gradient(160deg, #0f766e, #134e4a);
+      color: white; font-size: 24px;
+      box-shadow: var(--shadow);
+    }
+    h1 { font-size: 1.55rem; letter-spacing: -0.03em; }
+    .sub { color: var(--muted); font-size: 0.95rem; margin-top: 2px; }
+    .stats {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 14px;
+      min-width: 110px;
+    }
+    .stat b { display: block; font-size: 1.1rem; }
+    .stat span { color: var(--muted); font-size: 0.8rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 18px 20px 60px; }
+    .drop {
+      border: 2px dashed #c4b59a;
+      background: #fffdf8;
+      border-radius: 22px;
+      padding: 28px 20px;
+      text-align: center;
+      transition: 0.2s ease;
+      cursor: pointer;
+    }
+    .drop.over, .drop:hover {
+      border-color: var(--accent);
+      background: #f0fdfa;
+      transform: translateY(-1px);
+    }
+    .drop h2 { font-size: 1.2rem; margin: 8px 0 6px; }
+    .drop p { color: var(--muted); }
+    .btn {
+      border: 0; border-radius: 12px; padding: 10px 16px;
+      background: var(--accent); color: white; font-weight: 700;
+      cursor: pointer; font-size: 0.95rem;
+    }
+    .btn.ghost {
+      background: white; color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn.danger { background: #b91c1c; }
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin: 18px 0 14px; align-items: center;
+    }
+    input[type="search"], select {
+      flex: 1; min-width: 180px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(31,42,36,0.06);
+      display: flex; flex-direction: column;
+    }
+    .thumb {
+      height: 150px;
+      background: linear-gradient(180deg, #fee2e2, #fff7ed);
+      display: grid; place-items: center;
+      font-size: 42px;
+      position: relative;
+    }
+    .badge {
+      position: absolute; top: 10px; right: 10px;
+      background: #111827; color: white;
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    }
+    .card body, .meta { padding: 12px 14px 14px; }
+    .meta h3 {
+      font-size: 1rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .meta p { color: var(--muted); font-size: 0.82rem; margin: 6px 0 10px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty {
+      text-align: center; padding: 40px 12px; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 18px; background: #fffaf3aa;
+    }
+    dialog {
+      border: 0; border-radius: 20px; width: min(980px, 96vw);
+      height: min(92vh, 900px);
+      padding: 0; background: #111;
+    }
+    dialog::backdrop { background: rgba(15,23,20,0.62); }
+    .viewer-bar {
+      display: flex; justify-content: space-between; gap: 10px;
+      align-items: center; padding: 10px 12px;
+      background: #1f2937; color: white;
+    }
+    .viewer-bar b { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    iframe { width: 100%; height: calc(100% - 52px); border: 0; background: #525659; }
+    footer {
+      max-width: 1100px; margin: 0 auto; padding: 0 20px 28px;
+      color: var(--muted); font-size: 0.86rem;
+    }
+    .note {
+      margin-top: 18px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">📚</div>
+      <div>
+        <h1>PDF Pustakalay</h1>
+        <p class="sub">PDF takaa, save kara, ani ithunach vacha</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="count">0</b><span>PDFs</span></div>
+      <div class="stat"><b id="size">0 MB</b><span>Total size</span></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="drop" id="drop" tabindex="0">
+      <div style="font-size:34px">📥</div>
+      <h2>PDF ikde drop kara</h2>
+      <p>Kinva click karun file select kara. Ekaveki anek PDFs chalu.</p>
+      <div style="margin-top:14px">
+        <button class="btn" id="pickBtn" type="button">PDF Select Kara</button>
+      </div>
+      <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden />
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Navane shodha..." />
+      <select id="sort">
+        <option value="new">Navin pahile</option>
+        <option value="name">A-Z</option>
+        <option value="size">Mothi file pahile</option>
+      </select>
+      <button class="btn ghost" id="clearAll" type="button">Sagle delete</button>
+    </div>
+
+    <div id="list" class="grid"></div>
+    <p class="note">
+      He PDFs tumchya browser madhe save hotaat (IndexedDB). Dusrya device var disnar nahi.
+      Website GitHub Pages var host keli aahe — backend server nahi, mhanun files cloud var automatically upload hot nahi.
+    </p>
+  </main>
+
+  <footer>PDF Pustakalay · Free personal library</footer>
+
+  <dialog id="viewer">
+    <div class="viewer-bar">
+      <b id="vtitle">PDF</b>
+      <button class="btn ghost" id="closeV" type="button">Band kara</button>
+    </div>
+    <iframe id="frame" title="PDF viewer"></iframe>
+  </dialog>
+
+  <script>
+    const DB_NAME = "pdf-pustakalay";
+    const STORE = "files";
+    const drop = document.getElementById("drop");
+    const fileInput = document.getElementById("file");
+    const list = document.getElementById("list");
+    const q = document.getElementById("q");
+    const sort = document.getElementById("sort");
+    const viewer = document.getElementById("viewer");
+    const frame = document.getElementById("frame");
+    let cache = [];
+    let objectUrl = null;
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(STORE)) {
+            db.createObjectStore(STORE, { keyPath: "id" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function allFiles() {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readonly");
+        const req = tx.objectStore(STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function putFile(rec) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).put(rec);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function delFile(id) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function clearFiles() {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).clear();
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function fmtSize(n) {
+      if (n < 1024) return n + " B";
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+      return (n / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    function fmtDate(ts) {
+      return new Date(ts).toLocaleString("en-IN");
+    }
+
+    async function addFiles(files) {
+      const arr = [...files].filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+      if (!arr.length) {
+        alert("Fakt PDF files chalu aahet.");
+        return;
+      }
+      for (const f of arr) {
+        if (f.size > 40 * 1024 * 1024) {
+          alert(f.name + " khup mothi aahe (40 MB peksha). Skip keli.");
+          continue;
+        }
+        const buf = await f.arrayBuffer();
+        await putFile({
+          id: crypto.randomUUID(),
+          name: f.name,
+          size: f.size,
+          added: Date.now(),
+          blob: new Blob([buf], { type: "application/pdf" })
+        });
+      }
+      await refresh();
+    }
+
+    function filtered() {
+      const term = q.value.trim().toLowerCase();
+      let rows = cache.filter(x => x.name.toLowerCase().includes(term));
+      if (sort.value === "name") rows.sort((a,b) => a.name.localeCompare(b.name));
+      else if (sort.value === "size") rows.sort((a,b) => b.size - a.size);
+      else rows.sort((a,b) => b.added - a.added);
+      return rows;
+    }
+
+    function render() {
+      const rows = filtered();
+      document.getElementById("count").textContent = cache.length;
+      const total = cache.reduce((s, x) => s + (x.size || 0), 0);
+      document.getElementById("size").textContent = fmtSize(total);
+      if (!rows.length) {
+        list.className = "";
+        list.innerHTML = '<div class="empty">Ajun PDF nahi. Varun file drop kara.</div>';
+        return;
+      }
+      list.className = "grid";
+      list.innerHTML = rows.map(r => `
+        <article class="card">
+          <div class="thumb">📄<span class="badge">PDF</span></div>
+          <div class="meta">
+            <h3>${escapeHtml(r.name)}</h3>
+            <p>${fmtSize(r.size)} · ${fmtDate(r.added)}</p>
+            <div class="row">
+              <button class="btn" data-open="${r.id}">Vacha</button>
+              <button class="btn ghost" data-down="${r.id}">Download</button>
+              <button class="btn danger" data-del="${r.id}">Delete</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function refresh() {
+      cache = await allFiles();
+      render();
+    }
+
+    function find(id) { return cache.find(x => x.id === id); }
+
+    drop.addEventListener("click", (e) => {
+      if (e.target.id === "pickBtn" || e.currentTarget === drop) fileInput.click();
+    });
+    document.getElementById("pickBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+    fileInput.addEventListener("change", () => {
+      addFiles(fileInput.files);
+      fileInput.value = "";
+    });
+    ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.add("over");
+    }));
+    ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.remove("over");
+    }));
+    drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+    q.addEventListener("input", render);
+    sort.addEventListener("change", render);
+
+    list.addEventListener("click", async (e) => {
+      const open = e.target.getAttribute("data-open");
+      const del = e.target.getAttribute("data-del");
+      const down = e.target.getAttribute("data-down");
+      if (open) {
+        const rec = find(open);
+        if (!rec) return;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+        frame.src = rec.url ? rec.url : (objectUrl = URL.createObjectURL(rec.blob));
+        document.getElementById("vtitle").textContent = rec.name;
+        viewer.showModal();
+      }
+      if (down) {
+        const rec = find(down);
+        if (!rec) return;
+        if (rec.url) {
+          const a = document.createElement("a");
+          a.href = rec.url;
+          a.download = rec.name;
+          a.click();
+        } else {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(rec.blob);
+          a.download = rec.name;
+          a.click();
+        }
+      }
+      if (del) {
+        if (confirm("Hi PDF delete karaychi?")) {
+          await delFile(del);
+          await refresh();
+        }
+      }
+    });
+
+    document.getElementById("closeV").onclick = () => {
+      viewer.close();
+      frame.src = "";
+    };
+    document.getElementById("clearAll").onclick = async () => {
+      if (!cache.length) return;
+      if (confirm("Sagle PDFs delete karayche?")) {
+        await clearFiles();
+        await refresh();
+      }
+    };
+
+    refresh();
+    loadPublicPdfs();
+
+    async function loadPublicPdfs() {
+      try {
+        const res = await fetch("manifest.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const files = Array.isArray(data.files) ? data.files : [];
+        for (const name of files) {
+          const already = cache.some(x => x.name === name && x.publicFile);
+          if (already) continue;
+          const url = "pdfs/" + encodeURIComponent(name);
+          const rec = {
+            id: "public-" + name,
+            name: name,
+            size: 0,
+            added: Date.now(),
+            publicFile: true,
+            url: url,
+            blob: null
+          };
+          cache.push(rec);
+        }
+        render();
+      } catch (err) {}
+    }
+  </script>
+</body>
+</html>
